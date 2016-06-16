@@ -25,7 +25,6 @@
 <canvas id ="canvasElem"></canvas>
 <button onclick="captureBackground()">Capture Background</button>
 
-
 <script>
    var video = document.getElementById("videoElem");
    var canvas = document.getElementById("canvasElem");
@@ -35,17 +34,22 @@
 
    var ch, cw;
 
-   var backgroundAvgI;
-   var backgroundAvgR;
-   var backgroundAvgG;
-   var backgroundAvgB;
+   var backgroundAvg;
 
-   var foremean = 0;
-   var backmean = 0;
+   var foremeanI = 0;
+   var backmeanI = 0;
+   var foremeanR = 0;
+   var backmeanR = 0;
+   var foremeanG = 0;
+   var backmeanG = 0;
+   var foremeanB = 0;
+   var backmeanB = 0;
+
    var numfore = 0;
    var numback = 0;
 
-   var threshold = 40;
+   var ithreshold = 127;
+   var cthreshold = 50;
 
    var numBackFrames = 100;
 
@@ -91,22 +95,23 @@
          var b = data[i+2];
 
          var currI = (3*r+4*g+b)>>>3;
-         var backI = backgroundAvgI[i];
+         var backI = backgroundAvg[i+3];
          var iDiff = Math.abs(currI - backI);
 
-         var rDiff = Math.abs(r - backgroundAvgR[i]);
-         var gDiff = Math.abs(g - backgroundAvgG[i]);
-         var bDiff = Math.abs(b - backgroundAvgB[i]);
+         var rDiff = Math.abs(r - backgroundAvg[i]);
+         var gDiff = Math.abs(g - backgroundAvg[i+1]);
+         var bDiff = Math.abs(b - backgroundAvg[i+2]);
          var totalColorDiff = rDiff + gDiff + bDiff;
 
-         console.log("color diff" = totalColorDiff);
-
-         if (Math.abs(currI - backI) < threshold){ //background
+         if (iDiff < ithreshold && totalColorDiff < cthreshold) { //background
             data[i] = 0;
             data[i+1] = 0;
             data[i+2] = 0;
 
-            backmean += backI;
+            backmeanI += backI;
+            backmeanR += backgroundAvg[i];
+            backmeanG += backgroundAvg[i+1];
+            backmeanB += backgroundAvg[i+2];
             numback ++;
 
          } else { //foreground
@@ -114,51 +119,31 @@
             data[i+1] = 255;
             data[i+2] = 255;
 
-            foremean += currI;
+            foremeanI += currI;
+            foremeanR += r;
+            foremeanG += g;
+            foremeanB += b;            
             numfore ++;
          }
       }
-      //threshold = ((foremean/numfore) + (backmean/numback))/2;
+
+      ithreshold = ((foremeanI/numfore) + (backmeanI/numback))/2;
+      
+      var redMid = ((foremeanR/numfore) + (backmeanR/numback))/2;
+      var greenMid = ((foremeanG/numfore) + (backmeanG/numback))/2;
+      var blueMid = ((foremeanB/numfore) + (backmeanB/numback))/2;
+      cthreshold = Math.min(redMid, blueMid, greenMid);
 
       idata.data = data;
-      // Draw the pixels onto the visible canvas
       context.putImageData(idata,0,0);
-      // Start over!
       setTimeout(draw);
    }
-
-   // function draw() {
-   //    console.log("draw");
-
-   //    var width = video.clientWidth;
-   //    var height = video.clientHeight;
-
-   //    frameContext.drawImage(video, frameContext.offsetLeft, frameContext.offsetTop, width, height);
-   //    frame = frameContext.getImageData(0, 0, width, height);
-   //    frameData = frame.data;
-
-   //    for (var i = 0; i < frameData.length; i += 4){
-   //       var r = frameData[i] - backgroundData[i];
-   //       var g = frameData[i+1] - backgroundData[i+1];
-   //       var b = frameData[i+2] - backgroundData[i+2];
-   //       frameData[i] = r;
-   //       frameData[i+1] = g;
-   //       frameData[i+2] = b;
-   //    }
-   //    frame.data = frameData;
-   //    frameContext.putImageData(frame,0,0);
-
-   //    setTimeout(function() {draw()}, 0);
-   // }
 
    function captureBackground() {
 
       var background = backContext.getImageData(0, 0, cw, ch);
       var backgroundData = background.data;
-      backgroundAvgI = new Array(backgroundData.length/4);
-      backgroundAvgR = new Array(backgroundData.length/4);
-      backgroundAvgG = new Array(backgroundData.length/4);
-      backgroundAvgB = new Array(backgroundData.length/4);
+      backgroundAvg = new Array(backgroundData.length);
 
       for (var j = 0; j < numBackFrames; j++){
 
@@ -171,25 +156,25 @@
             var g = backgroundData[i+1];
             var b = backgroundData[i+2];
             var brightness = (3*r+4*g+b)>>>3;
-            if (backgroundAvgI[i] === undefined){
-               backgroundAvgI[i] = brightness;
+            if (backgroundAvg[i] === undefined){
+               backgroundAvg[i] = r;
             } else {
-               backgroundAvgI[i] += brightness;
+               backgroundAvg[i] += r;
             }
-            if (backgroundAvgR[i] === undefined){
-               backgroundAvgR[i] = r;
+            if (backgroundAvg[i+1] === undefined){
+               backgroundAvg[i+1] = g;
             } else {
-               backgroundAvgR += r;
-            }            
-            if (backgroundAvgG[i] === undefined){
-               backgroundAvgG[i] = g;
+               backgroundAvg[i+1] += g;
+            }
+            if (backgroundAvg[i+2] === undefined){
+               backgroundAvg[i+2] = b;
             } else {
-               backgroundAvgG += g;
-            }            
-            if (backgroundAvgB[i] === undefined){
-               backgroundAvgB[i] = b;
+               backgroundAvg[i+2] += b;
+            }
+            if (backgroundAvg[i+3] === undefined){
+               backgroundAvg[i+3] = brightness;
             } else {
-               backgroundAvgB += b;
+               backgroundAvg[i+3] += brightness;
             }
          }
          while (video.readyState !== video.HAVE_ENOUGH_DATA){
@@ -197,12 +182,11 @@
          }
       }
 
-      for (var k = 0; k < backgroundAvgI.length; k++){
-         backgroundAvgI[k] /= numBackFrames;
-         backgroundAvgR[k] /= numBackFrames;
-         backgroundAvgG[k] /= numBackFrames;
-         backgroundAvgB[k] /= numBackFrames;
+      for (var k = 0; k < backgroundAvg.length; k++){
+         backgroundAvg[k] /= numBackFrames;
       }
+
+      console.log("hi");
 
       draw();
    }
