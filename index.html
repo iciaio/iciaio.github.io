@@ -35,7 +35,10 @@
 
    var ch, cw;
 
-   var backgroundAvg;
+   var backgroundAvgI;
+   var backgroundAvgR;
+   var backgroundAvgG;
+   var backgroundAvgB;
 
    var foremean = 0;
    var backmean = 0;
@@ -86,8 +89,17 @@
          var r = data[i];
          var g = data[i+1];
          var b = data[i+2];
+
          var currI = (3*r+4*g+b)>>>3;
-         var backI = backgroundAvg[i];
+         var backI = backgroundAvgI[i];
+         var iDiff = Math.abs(currI - backI);
+
+         var rDiff = Math.abs(r - backgroundAvgR[i]);
+         var gDiff = Math.abs(g - backgroundAvgG[i]);
+         var bDiff = Math.abs(b - backgroundAvgB[i]);
+         var totalColorDiff = rDiff + gDiff + bDiff;
+
+         console.log("color diff" = totalColorDiff);
 
          if (Math.abs(currI - backI) < threshold){ //background
             data[i] = 0;
@@ -143,7 +155,10 @@
 
       var background = backContext.getImageData(0, 0, cw, ch);
       var backgroundData = background.data;
-      backgroundAvg = new Array(backgroundData.length/4);
+      backgroundAvgI = new Array(backgroundData.length/4);
+      backgroundAvgR = new Array(backgroundData.length/4);
+      backgroundAvgG = new Array(backgroundData.length/4);
+      backgroundAvgB = new Array(backgroundData.length/4);
 
       for (var j = 0; j < numBackFrames; j++){
 
@@ -156,10 +171,25 @@
             var g = backgroundData[i+1];
             var b = backgroundData[i+2];
             var brightness = (3*r+4*g+b)>>>3;
-            if (backgroundAvg[i] === undefined){
-               backgroundAvg[i] = brightness;
+            if (backgroundAvgI[i] === undefined){
+               backgroundAvgI[i] = brightness;
             } else {
-               backgroundAvg[i] += brightness;
+               backgroundAvgI[i] += brightness;
+            }
+            if (backgroundAvgR[i] === undefined){
+               backgroundAvgR[i] = r;
+            } else {
+               backgroundAvgR += r;
+            }            
+            if (backgroundAvgG[i] === undefined){
+               backgroundAvgG[i] = g;
+            } else {
+               backgroundAvgG += g;
+            }            
+            if (backgroundAvgB[i] === undefined){
+               backgroundAvgB[i] = b;
+            } else {
+               backgroundAvgB += b;
             }
          }
          while (video.readyState !== video.HAVE_ENOUGH_DATA){
@@ -167,8 +197,11 @@
          }
       }
 
-      for (var k = 0; k < backgroundAvg.length; k++){
-         backgroundAvg[k] /= numBackFrames;
+      for (var k = 0; k < backgroundAvgI.length; k++){
+         backgroundAvgI[k] /= numBackFrames;
+         backgroundAvgR[k] /= numBackFrames;
+         backgroundAvgG[k] /= numBackFrames;
+         backgroundAvgB[k] /= numBackFrames;
       }
 
       draw();
