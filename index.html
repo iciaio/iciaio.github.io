@@ -44,6 +44,8 @@
 
    var threshold = 40;
 
+   var numBackFrames = 100;
+
    window.onload = getVid;
 
    function getVid() {
@@ -143,7 +145,7 @@
       var backgroundData = background.data;
       backgroundAvg = new Array(backgroundData.length/4);
 
-      for (var j = 0; j < 100; j++){
+      for (var j = 0; j < numBackFrames; j++){
 
          backContext.drawImage(video, 0, 0, cw, ch);
          background = backContext.getImageData(0, 0, cw, ch);
@@ -166,7 +168,7 @@
       }
 
       for (var k = 0; k < backgroundAvg.length; k++){
-         backgroundAvg[k] /= 100;
+         backgroundAvg[k] /= numBackFrames;
       }
 
       draw();
