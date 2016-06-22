@@ -25,6 +25,9 @@
 <canvas id ="canvasElem"></canvas>
 <button onclick="captureBackground()">Capture Background</button>
 
+<script type="text/javascript" src="libs/polyfill.js"></script> 
+<script type="text/javascript" src="cv.js"></script> 
+<script type="text/javascript" src="handtracking.js"></script> 
 <script type="text/javascript" src="background_deletion.js"></script> 
 
 <script>
@@ -36,6 +39,8 @@
    var context = canvas.getContext("2d");
    var back = document.createElement("canvas");
    var backContext = back.getContext("2d");
+
+   var tracker = new HT.Tracker();
 
    var ch, cw;
 
