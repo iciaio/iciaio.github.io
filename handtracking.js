@@ -34,7 +34,7 @@ HT.Tracker = function(params){
 
 HT.Tracker.prototype.detect = function(image){
   this.skinner.mask(image, this.mask);
-  
+
   if (this.params.fast){
     this.blackBorder(this.mask);
   }else{
@@ -56,14 +56,12 @@ HT.Tracker.prototype.findCandidate = function(contours, minSize, epsilon){
   
     candidate = new HT.Candidate(contour);
   }
-  
   return candidate;
 };
 
 HT.Tracker.prototype.findMaxArea = function(contours, minSize){
   var len = contours.length, i = 0,
       maxArea = -Infinity, area, contour;
-
   for (; i < len; ++ i){
     area = CV.area(contours[i]);
     if (area >= minSize){
@@ -75,7 +73,6 @@ HT.Tracker.prototype.findMaxArea = function(contours, minSize){
       }
     }
   }
-  
   return contour;
 };
 
@@ -110,45 +107,50 @@ HT.Skinner = function(){
 };
 
 HT.Skinner.prototype.mask = function(imageSrc, imageDst){
-  var src = imageSrc.data, dst = imageDst.data, len = src.length,
-      i = 0, j = 0,
-      r, g, b, h, s, v, value;
+  // var src = imageSrc.data, dst = imageDst.data, len = src.length,
+  //     i = 0, j = 0,
+  //     r, g, b, h, s, v, value;
 
-  for(; i < len; i += 4){
-    r = src[i];
-    g = src[i + 1];
-    b = src[i + 2];
+  // for(; i < len; i += 4){
+  //   r = src[i];
+  //   g = src[i + 1];
+  //   b = src[i + 2];
   
-    v = Math.max(r, g, b);
-    s = v === 0? 0: 255 * ( v - Math.min(r, g, b) ) / v;
-    h = 0;
+  //   v = Math.max(r, g, b);
+  //   s = v === 0? 0: 255 * ( v - Math.min(r, g, b) ) / v;
+  //   h = 0;
     
-    if (0 !== s){
-      if (v === r){
-        h = 30 * (g - b) / s;
-      }else if (v === g){
-        h = 60 + ( (b - r) / s);
-      }else{
-        h = 120 + ( (r - g) / s);
-      }
-      if (h < 0){
-        h += 360;
-      }
-    }
+  //   if (0 !== s){
+  //     if (v === r){
+  //       h = 30 * (g - b) / s;
+  //     }else if (v === g){
+  //       h = 60 + ( (b - r) / s);
+  //     }else{
+  //       h = 120 + ( (r - g) / s);
+  //     }
+  //     if (h < 0){
+  //       h += 360;
+  //     }
+  //   }
     
-    value = 0;
+  //   value = 0;
 
-    if (v >= 15 && v <= 250){
-      if (h >= 3 && h <= 33){
-        value = 255;
-      }
-    }
+  //   if (v >= 15 && v <= 250){
+  //     if (h >= 3 && h <= 33){
+  //       value = 255;
+  //     }
+  //   }
     
-    dst[j ++] = value;
-  }
+  //   dst[j ++] = value;
+  // }
   
   imageDst.width = imageSrc.width;
   imageDst.height = imageSrc.height;
-  
+
+  var src = imageSrc.data, dst = imageDst.data;
+  for (var i = 0; i < dst.length; i++){
+    dst[i] = src[i*4]
+  }
+
   return imageDst;
 };

@@ -63,11 +63,26 @@ var numBackFrames = 100;
 var idata; 
 var data;
 
+var background; //for debug
+
 //capture background gets average background
 function captureBackground() {
+  //reset values
+  foremeanI = 0;
+  backmeanI = 0;
+  foremeanR = 0;
+  backmeanR = 0;
+  foremeanG = 0;
+  backmeanG = 0;
+  foremeanB = 0;
+  backmeanB = 0;
+  numfore = 0;
+  numback = 0;
+  ithreshold = 127;
+  cthreshold = 50;
 
   //get data from stream
-  var background = backContext.getImageData(0, 0, cw, ch);
+  background = backContext.getImageData(0, 0, cw, ch);
   var backgroundData = background.data;
   backgroundAvg = new Array(backgroundData.length);
   temporalBCG = new Array(backgroundData.length).fill(0);
@@ -79,33 +94,34 @@ function captureBackground() {
     backgroundData = background.data;
 
     for(var i = 0; i < backgroundData.length ; i+=4) {
-      var r = backgroundData[i];
-      var g = backgroundData[i+1];
-      var b = backgroundData[i+2];
-      var brightness = (3*r+4*g+b)>>>3;
-      if (backgroundAvg[i] === undefined){
-        backgroundAvg[i] = r;
+      if (video.readyState === video.HAVE_ENOUGH_DATA){
+        var r = backgroundData[i];
+        var g = backgroundData[i+1];
+        var b = backgroundData[i+2];
+        var brightness = (3*r+4*g+b)>>>3;
+        if (backgroundAvg[i] === undefined){
+          backgroundAvg[i] = r;
+        } else {
+          backgroundAvg[i] += r;
+        }
+        if (backgroundAvg[i+1] === undefined){
+          backgroundAvg[i+1] = g;
+        } else {
+          backgroundAvg[i+1] += g;
+        }
+        if (backgroundAvg[i+2] === undefined){
+          backgroundAvg[i+2] = b;
+        } else {
+          backgroundAvg[i+2] += b;
+        }
+        if (backgroundAvg[i+3] === undefined){
+          backgroundAvg[i+3] = brightness;
+        } else {
+          backgroundAvg[i+3] += brightness;
+        }
       } else {
-        backgroundAvg[i] += r;
+        sleep(20);
       }
-      if (backgroundAvg[i+1] === undefined){
-        backgroundAvg[i+1] = g;
-      } else {
-        backgroundAvg[i+1] += g;
-      }
-      if (backgroundAvg[i+2] === undefined){
-        backgroundAvg[i+2] = b;
-      } else {
-        backgroundAvg[i+2] += b;
-      }
-      if (backgroundAvg[i+3] === undefined){
-        backgroundAvg[i+3] = brightness;
-      } else {
-        backgroundAvg[i+3] += brightness;
-      }
-    }
-    while (video.readyState !== video.HAVE_ENOUGH_DATA){
-      sleep(20);
     }
   }
 
@@ -118,7 +134,6 @@ function captureBackground() {
 
 function update(){
 
-  // var candidate;
   requestAnimationFrame(update);
 
   if (video.readyState === video.HAVE_ENOUGH_DATA){
@@ -128,23 +143,25 @@ function update(){
     idata.data = data;
     context.putImageData(idata,0,0);
 
-    //use cv.js and handtracking.js library from jcmellado to perform hand detection
-    // candidate = tracker.detect(idata);
-    // var contour = candidate.contour;
-   
-    // if (contour.length > 0){
-    //   context.beginPath();
-    //   context.lineWidth = 3;
-    //   context.strokeStyle = "green";
+    candidate = tracker.detect(idata);
 
-    //   context.moveTo(contour[0].x, contour[0].y);
-    //   for (i = 0; i < len; ++ i){
-    //   context.lineTo(contour[i].x, contour[i].y);
-    //   }
+    if (candidate !== undefined){
+      contour = candidate.contour;
+    }
 
-    //   context.stroke();
-    //   context.closePath();
-    // }
+    if (contour.length > 0){
+      context.beginPath();
+      context.lineWidth = 5;
+      context.strokeStyle = "green";
+
+      context.moveTo(contour[0].x, contour[0].y);
+      for (i = 0; i < contour.length; ++ i){
+        context.lineTo(contour[i].x, contour[i].y);
+      }
+
+      context.stroke();
+      context.closePath();
+    }
   }
 }
 
