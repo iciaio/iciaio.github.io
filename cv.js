@@ -53,7 +53,7 @@ CV.findContours = function(imageSrc){
         if (1 === pix && 0 === src[pos - 1]){
           outer = true;
         }
-        else if (pix >= 1 && 0 === src[pos + 1]){
+         if (pix >= 1 && 0 === src[pos + 1]){
           hole = true;
         }
 
@@ -346,7 +346,7 @@ CV.convexityDefects = function(points, hull){
     for (i = 1; i !== len; ++ i){
       next = hull[i];
       isDefect = false;
-      depth = 0;
+      depth = 20;
     
       dx0 = next.x - curr.x;
       dy0 = next.y - curr.y;

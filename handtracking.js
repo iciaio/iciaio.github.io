@@ -23,28 +23,28 @@ THE SOFTWARE.
 var HT = HT || {};
 
 HT.Tracker = function(params){
-  this.params = params || {};
+  // this.params = params || {};
 
-  this.mask = new CV.Image();
-  this.eroded = new CV.Image();
-  this.contours = [];
+  // this.mask = new CV.Image();
+  // this.eroded = new CV.Image();
+  // this.contours = [];
   
-  this.skinner = new HT.Skinner();
+  // this.skinner = new HT.Skinner();
 };
 
 HT.Tracker.prototype.detect = function(image){
-  this.skinner.mask(image, this.mask);
+  // this.skinner.mask(image, this.mask);
 
-  if (this.params.fast){
-    this.blackBorder(this.mask);
-  }else{
-    CV.erode(this.mask, this.eroded);
-    CV.dilate(this.eroded, this.mask);
-  }
+  // if (this.params.fast){
+  //   this.blackBorder(this.mask);
+  // }else{
+  //   CV.erode(this.mask, this.eroded);
+  //   CV.dilate(this.eroded, this.mask);
+  // }
 
-  this.contours = CV.findContours(this.mask);
+  this.contours = CV.findContours(image);
 
-  return this.findCandidate(this.contours, image.width * image.height * 0.05, 0.005);
+  return this.findCandidate(this.contours, image.width * image.height * 0.05, 0.001);
 };
 
 HT.Tracker.prototype.findCandidate = function(contours, minSize, epsilon){
@@ -144,13 +144,14 @@ HT.Skinner.prototype.mask = function(imageSrc, imageDst){
   //   dst[j ++] = value;
   // }
   
-  imageDst.width = imageSrc.width;
-  imageDst.height = imageSrc.height;
+  //make image binary (ie get rid of color/alpha data; 0 if black, 255 if white)
+  // imageDst.width = imageSrc.width;
+  // imageDst.height = imageSrc.height;
 
-  var src = imageSrc.data, dst = imageDst.data;
-  for (var i = 0; i < dst.length; i++){
-    dst[i] = src[i*4]
-  }
+  // var src = imageSrc.data, dst = imageDst.data;
+  // for (var i = 0; i < dst.length; i++){
+  //   dst[i] = src[i*4]
+  // }
 
-  return imageDst;
+  // return imageDst;
 };
