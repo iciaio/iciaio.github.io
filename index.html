@@ -27,8 +27,8 @@
 
 <video autoplay="true" id="webcamStream"></video>
 <canvas id ="interfaceCanvas"></canvas>
-<button onclick="bg()">Capture Background</button>
-<button onclick="track()">Start Tracking</button>
+<button onclick="init()">Initialize</button>
+<button onclick="reset()" disabled="true" id="resetbutton">Reset Tips</button>
 
 <script type="text/javascript" src="cv.js"></script> 
 <script type="text/javascript" src="handtracking.js"></script> 
@@ -53,7 +53,6 @@
   // states:
   // BEFORE_BG_DELETE = 0;
   // AFTER_BG_DELETE = 1;
-  // TRACKING = 2;
   var state = 0;
 
   window.onload = getVid;
@@ -98,38 +97,29 @@
       }
       else if (state === 1){
         interfaceContext.drawImage(webcam,0,0,width,height);
-        interfaceContext.strokeStyle = "white";
-        interfaceContext.lineWidth = 4;
-        interfaceContext.beginPath;
-        interfaceContext.arc((width/2), (height/2),90,0,2*Math.PI);
-        interfaceContext.stroke();
-      }
-      else if (state === 2){
-        interfaceContext.drawImage(webcam,0,0,width,height);
         shortimg = background.computeImage();
         fingertracker.analyzeImg(shortimg);
-        // fingertracker.displayBinImg(interfaceContext, shortimg);
-        interfaceContext.strokeStyle = "white";
-        interfaceContext.lineWidth = 4;
-        interfaceContext.beginPath;
-        interfaceContext.arc((width/2), (height/2),90,0,2*Math.PI);
-        interfaceContext.stroke();
-        // fingertracker.showContour(interfaceContext, shortimg);
-        // fingertracker.showDefects(interfaceContext, shortimg);
-        // fingertracker.showPalmCenter(interfaceContext, shortimg);
-        fingertracker.showHull(interfaceContext,shortimg)
+        // fingertracker.displayBinImg(shortimg);
+        fingertracker.showBounds();
+        // fingertracker.showContour(shortimg);
+        // fingertracker.showDefects(shortimg);
+        // fingertracker.showPalmCenter(shortimg);
+        fingertracker.getFingertips(shortimg)
       }
     }
   }
 
-  function bg (){
+  function init(){
+    //captures the background and initializes the fingertracker
     background = new BG(webcam, hiddenContext, width, height);
+    fingertracker = new FT(interfaceContext, 90, width, height);
+    document.getElementById("resetbutton").disabled = false;
     state = 1;
   }
 
-  function track (){
-    fingertracker = new FT(90, width/2, height/2);
-    state = 2;
+  function reset(){
+    //resets fingertip positions
+    fingertracker.initTips();
   }
 
 </script>
