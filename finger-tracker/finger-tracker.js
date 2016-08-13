@@ -4,7 +4,7 @@ class FT {
   //1) the context to draw on 
   //2) the radius defining a circle as the boundary the fingertips can be in
   //3) the width and height of the context
-  constructor(context, rad, width, height, numFingers){
+  constructor(context, rad, width, height){
     this.candidate;
     this.tracker = new HT.Tracker();
     this.contour = [];

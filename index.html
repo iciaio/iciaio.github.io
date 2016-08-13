@@ -13,12 +13,18 @@
 }
 
 #interfaceCanvas {
+  float:left;
   /* mirror video */
   transform: rotateY(180deg);
   -webkit-transform:rotateY(180deg); /* Safari and Chrome */
   -moz-transform:rotateY(180deg); /* Firefox */
 }
 
+#interfaceContainer{
+  float:left;
+  width: 350px;
+  padding: 20px;
+}
 </style>
 
 </head>
@@ -27,13 +33,30 @@
 
 <video autoplay="true" id="webcamStream"></video>
 <canvas id ="interfaceCanvas"></canvas>
-<button onclick="init()">Initialize</button>
-<button onclick="reset()" disabled="true" id="resetbutton">Reset Tips</button>
-
-<script type="text/javascript" src="cv.js"></script> 
-<script type="text/javascript" src="handtracking.js"></script> 
-<script type="text/javascript" src="background-subtraction.js"></script> 
-<script type="text/javascript" src="finger-tracker.js"></script> 
+<div id="interfaceContainer">
+  <h id="header">Finger Tracking</h><br>
+  <input type="button" onclick="toggleTrackers()" value="Switch to Color Tracker" id="toggletrackersbutton"></input><br>
+  <div id="ftButtonDiv">
+    <p>1. Press "Initialize" button to calibrate background. Make sure the background is static (no moving objects).</p>
+    <p>2. With all five fingers inside the white outline, press "Reset Tips" to calibrate to your fingertips.</p>
+    <button onclick="ft_init()" id="ftinitbutton">Initialize</button>
+    <button onclick="ft_reset()" disabled="true" id="ftresetbutton">Reset Tips</button>
+  </div>
+  <div id="ctButtonDiv" style="display: none;">
+    <p>1. Position your colored object so that it covers the white square completely. Press "Get Target Color" to track objects of this color.</p>
+    <p>2. You may increase or decrease the color threshold. Increasing it will allow more hues to be identified as the colored object.</p>
+    <button onclick="ct_getColor()" id="ctgetcolorbutton" disabled="true">Get Target Color</button><br>
+    Color Threshold: <input type="range" id="threshold" min="0" max="20" value="5"><br>
+  </div>
+    Display Binary Image <input type="checkbox" id="displaybininput" onclick="toggleBin()"><br>
+</div>
+<script type="text/javascript" src="finger-tracker/ft_cv.js"></script> 
+<script type="text/javascript" src="finger-tracker/ft_handtracking.js"></script> 
+<script type="text/javascript" src="finger-tracker/background-subtraction.js"></script> 
+<script type="text/javascript" src="finger-tracker/finger-tracker.js"></script> 
+<script type="text/javascript" src="color-tracker/ct_cv.js"></script> 
+<script type="text/javascript" src="color-tracker/ct_handtracking.js"></script> 
+<script type="text/javascript" src="color-tracker/color-tracker.js"></script> 
 
 <script>
   var webcam = document.getElementById("webcamStream");
@@ -45,15 +68,21 @@
   var hiddenContext = hiddenCanvas.getContext("2d");
 
   var height, width;
+  var shortimg = new CV.Image();
+
+  var usingColorTracker = false;
+  var showBin = false;
+
+  /* ------------- FINGERTRACKING--------------- */
   var background;
   var fingertracker;
-  var shortimg = new CV.Image();
-  var fingertips = [];
+  //ft_states: BEFORE_BG_DELETE = 0; AFTER_BG_DELETE = 1;
+  var ft_state = 0;
 
-  // states:
-  // BEFORE_BG_DELETE = 0;
-  // AFTER_BG_DELETE = 1;
-  var state = 0;
+  /* ------------- COLORTRACKING--------------- */  
+  var colortracker;
+  //ft_states: BEFORE_GET_TARGET_COLOR = 0; AFTER_GET_TARGET_COLOR = 1;
+  var ct_state = 0;
 
   window.onload = getVid;
 
@@ -92,34 +121,87 @@
     requestAnimationFrame(update);
 
     if (webcam.readyState === webcam.HAVE_ENOUGH_DATA){
-      if (state === 0){
-        interfaceContext.drawImage(webcam,0,0,width,height);
-      }
-      else if (state === 1){
-        interfaceContext.drawImage(webcam,0,0,width,height);
-        shortimg = background.computeImage();
-        fingertracker.analyzeImg(shortimg);
-        // fingertracker.displayBinImg(shortimg);
-        fingertracker.showBounds();
-        // fingertracker.showContour(shortimg);
-        // fingertracker.showDefects(shortimg);
-        // fingertracker.showPalmCenter(shortimg);
-        fingertracker.getFingertips(shortimg)
+      if (usingColorTracker === false){
+        if (ft_state === 0){
+          interfaceContext.drawImage(webcam,0,0,width,height);
+        }
+        else if (ft_state === 1){
+          interfaceContext.drawImage(webcam,0,0,width,height);
+          shortimg = background.computeImage();
+          fingertracker.analyzeImg(shortimg);
+          if (showBin) fingertracker.displayBinImg(shortimg);
+          fingertracker.showBounds();
+          // fingertracker.showContour(shortimg);
+          // fingertracker.showDefects(shortimg);
+          // fingertracker.showPalmCenter(shortimg);
+          fingertracker.getFingertips(shortimg)
+        }
+      } else {
+        if (ct_state === 0){
+          interfaceContext.drawImage(webcam,0,0,width,height);
+          if (colortracker === undefined){
+            var slider = document.getElementById("threshold");
+            colortracker = new CT(interfaceContext, width, height, slider);
+            document.getElementById("ctgetcolorbutton").disabled = false;
+          }
+          colortracker.drawTargetArea();
+        } else if (ct_state === 1){
+          interfaceContext.drawImage(webcam,0,0,width,height);
+          colortracker.analyzeImg();
+          if (showBin) colortracker.displayBinImg();
+          colortracker.getFingertips();
+        }
       }
     }
   }
 
-  function init(){
+  /* ------------- FINGERTRACKING--------------- */
+
+  function ft_init(){
     //captures the background and initializes the fingertracker
     background = new BG(webcam, hiddenContext, width, height);
     fingertracker = new FT(interfaceContext, 90, width, height);
-    document.getElementById("resetbutton").disabled = false;
-    state = 1;
+    document.getElementById("ftresetbutton").disabled = false;
+    ft_state = 1;
   }
 
-  function reset(){
+  function ft_reset(){
     //resets fingertip positions
     fingertracker.initTips();
+  }
+
+  /* ------------- COLORTRACKING--------------- */
+
+  function ct_getColor(){
+    colortracker.captureTargetHue();
+    ct_state = 1;
+  }
+
+  function toggleTrackers(){
+    if (usingColorTracker){ //CT -> FT
+      usingColorTracker = !usingColorTracker;
+      document.getElementById("header").innerText = "Finger Tracker";
+      document.getElementById("toggletrackersbutton").value = "Switch to Color Tracker";
+      document.getElementById("ctButtonDiv").style.display = "none";
+      document.getElementById("ftButtonDiv").style.display = "block";
+      document.getElementById("displaybininput").checked = false;
+    } else { //FT -> CT
+      usingColorTracker = !usingColorTracker;
+      document.getElementById("header").innerText = "Color Tracker";
+      document.getElementById("toggletrackersbutton").value = "Switch to Finger Tracker";
+      document.getElementById("ctButtonDiv").style.display = "block";
+      document.getElementById("ftButtonDiv").style.display = "none";
+      document.getElementById("displaybininput").checked = false;
+    }
+  }
+
+  function toggleBin(){
+    showBin = !showBin;
+    if (usingColorTracker && showBin) {
+      document.getElementById("ctgetcolorbutton").disabled = true;
+    } else {
+      document.getElementById("ctgetcolorbutton").disabled = false;      
+    }
   }
 
 </script>
